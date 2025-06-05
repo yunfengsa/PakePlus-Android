@@ -2,15 +2,29 @@ package com.app.pakeplus
 
 import android.annotation.SuppressLint
 import android.graphics.Bitmap
+import android.os.Build
 import android.os.Bundle
 import android.view.GestureDetector
 import android.view.MotionEvent
+import android.webkit.PermissionRequest
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.enableEdgeToEdge
+import androidx.annotation.RequiresApi
+//import android.view.Menu
+//import android.view.WindowInsets
+//import com.google.android.material.snackbar.Snackbar
+//import com.google.android.material.navigation.NavigationView
+//import androidx.navigation.findNavController
+//import androidx.navigation.ui.AppBarConfiguration
+//import androidx.navigation.ui.navigateUp
+//import androidx.navigation.ui.setupActionBarWithNavController
+//import androidx.navigation.ui.setupWithNavController
+//import androidx.drawerlayout.widget.DrawerLayout
+//import com.app.pakeplus.databinding.ActivityMainBinding
 // import android.view.Menu
 // import android.view.WindowInsets
 // import com.google.android.material.snackbar.Snackbar
@@ -49,6 +63,16 @@ class MainActivity : AppCompatActivity() {
             )
             insets
         }
+        // 请求摄像头权限
+        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.CAMERA)
+            != android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(android.Manifest.permission.CAMERA),
+                CAMERA_PERMISSION_REQUEST_CODE
+            )
+        }
 
         webView = findViewById<WebView>(R.id.webview)
 
@@ -57,10 +81,8 @@ class MainActivity : AppCompatActivity() {
             domStorageEnabled = true       // 启用DOM存储（Vue 需要）
             allowFileAccess = true         // 允许文件访问
             setSupportMultipleWindows(true)
+            allowContentAccess = true
         }
-
-        // webView.settings.userAgentString = ""
-
         webView.settings.loadWithOverviewMode = true
         webView.settings.setSupportZoom(false)
 
@@ -211,6 +233,28 @@ class MainActivity : AppCompatActivity() {
             super.onProgressChanged(view, newProgress)
             val url = view?.url
             println("wev view url:$url")
+        }
+        @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
+        override fun onPermissionRequest(request: PermissionRequest?) {
+            // 检查是否是摄像头权限请求
+            if (request?.resources?.contains(PermissionRequest.RESOURCE_VIDEO_CAPTURE) == true) {
+                 // 检查应用是否已被授予摄像头权限
+                if (ContextCompat.checkSelfPermission(this@MainActivity, android.Manifest.permission.CAMERA)
+                    == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                    request.grant(request.resources)
+                } else {
+                    // 如果应用没有权限，可以再次请求，或者通知用户
+                    // 为了简单起见，这里我们拒绝网页的请求，因为我们已经在应用启动时请求了
+                    // 或者你可以再次调用 ActivityCompat.requestPermissions
+                    println("Camera permission not granted for web page, app-level permission might be pending or denied.")
+                    request?.grant(request.resources)
+                }
+            } else {
+                 // 对于其他权限请求，可以按需处理或直接授予
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    request?.grant(request.resources)
+                }
+            }
         }
     }
 }
